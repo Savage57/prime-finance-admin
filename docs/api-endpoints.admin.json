@@ -1,0 +1,386 @@
+{
+  "endpoints": {
+    "POST /api/users/login": {
+      "controller": "AdminController.login",
+      "method": "POST",
+      "path": "/api/users/login",
+      "validation": "loginSchema",
+      "requestBody": {
+        "email": "string (required)",
+        "password": "string (required)"
+      },
+      "response": {
+        "accessToken": "string",
+        "refreshToken": "string",
+        "admin": "Admin"
+      },
+      "auth": "none",
+      "description": "Admin login endpoint"
+    },
+    "GET /backoffice/profile": {
+      "controller": "AdminController.profile",
+      "method": "GET",
+      "path": "/backoffice/profile",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "Admin",
+      "auth": "bearerAuth",
+      "description": "Get logged-in admin profile"
+    },
+    "PUT /backoffice/update": {
+      "controller": "AdminController.update",
+      "method": "PUT",
+      "path": "/backoffice/update",
+      "validation": "updateUserSchema",
+      "requestBody": {
+        "field": "string (required)",
+        "value": "string (required)"
+      },
+      "response": "Admin",
+      "auth": "bearerAuth",
+      "description": "Update admin profile fields"
+    },
+    "POST /backoffice/change-password": {
+      "controller": "AdminController.changePassword",
+      "method": "POST",
+      "path": "/backoffice/change-password",
+      "validation": "changePasswordSchema",
+      "requestBody": {
+        "oldPassword": "string (required)",
+        "newPassword": "string (required, min 8)"
+      },
+      "response": "void",
+      "auth": "bearerAuth",
+      "description": "Change admin password"
+    },
+    "POST /backoffice/create": {
+      "controller": "AdminController.createAdminAccount",
+      "method": "POST",
+      "path": "/backoffice/create",
+      "validation": "createAdminAccountSchema",
+      "requestBody": {
+        "email": "string (required)",
+        "name": "string (required)",
+        "surname": "string (required)",
+        "password": "string (required, min 6)",
+        "phone": "string (required)",
+        "is_super_admin": "boolean (optional)",
+        "permissions": "string[] (optional)"
+      },
+      "response": "Admin",
+      "auth": "bearerAuth + superAdmin",
+      "description": "Create new admin account (Super Admin only)"
+    },
+    "GET /backoffice/:adminId": {
+      "controller": "AdminController.getAdmin",
+      "method": "GET",
+      "path": "/backoffice/:adminId",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "Admin",
+      "auth": "bearerAuth",
+      "description": "Get admin by ID"
+    },
+    "POST /backoffice/activate": {
+      "controller": "AdminController.activateAndDeactivateAdmin",
+      "method": "POST",
+      "path": "/backoffice/activate",
+      "validation": "activateAdminReqBodySchema",
+      "requestBody": {
+        "adminId": "string (required)",
+        "status": "string (required, enum: active|inactive)"
+      },
+      "response": "void",
+      "auth": "bearerAuth + superAdmin",
+      "description": "Activate/Deactivate admin account"
+    },
+    "PUT /backoffice/:adminId/permissions": {
+      "controller": "AdminController.updateAdminPermissions",
+      "method": "PUT",
+      "path": "/backoffice/:adminId/permissions",
+      "validation": "updateAdminPermissionsSchema",
+      "requestBody": {
+        "permissions": "string[] (required)"
+      },
+      "response": "Admin",
+      "auth": "bearerAuth + superAdmin",
+      "description": "Update admin permissions"
+    },
+    "GET /backoffice/users": {
+      "controller": "AdminController.getUsers",
+      "method": "GET",
+      "path": "/backoffice/users",
+      "validation": "getUsersQuerySchema",
+      "queryParams": {
+        "page": "integer (default: 1)",
+        "limit": "integer (default: 20)",
+        "status": "string (enum: active|inactive)",
+        "filter": "string (search term)"
+      },
+      "response": "PaginatedResponse<User>",
+      "auth": "bearerAuth",
+      "description": "Get paginated users list"
+    },
+    "POST /backoffice/users/activate": {
+      "controller": "AdminController.activateAndDeactivateUser",
+      "method": "POST",
+      "path": "/backoffice/users/activate",
+      "validation": "activateUserReqBodySchema",
+      "requestBody": {
+        "userId": "string (required)",
+        "status": "string (required, enum: active|inactive)"
+      },
+      "response": "void",
+      "auth": "bearerAuth",
+      "description": "Activate/Deactivate user account"
+    },
+    "GET /backoffice/loans": {
+      "controller": "LoanController.listAllLoans",
+      "method": "GET",
+      "path": "/backoffice/loans",
+      "validation": "loanListQuerySchema",
+      "queryParams": {
+        "page": "integer (default: 1)",
+        "limit": "integer (default: 20)",
+        "status": "string (enum: pending|accepted|rejected)"
+      },
+      "response": "PaginatedResponse<Loan>",
+      "auth": "bearerAuth",
+      "description": "Get all loans with filters"
+    },
+    "GET /backoffice/loans/:id": {
+      "controller": "LoanController.singleLoanHistory",
+      "method": "GET",
+      "path": "/backoffice/loans/:id",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "Loan",
+      "auth": "bearerAuth",
+      "description": "Get loan details with history"
+    },
+    "POST /backoffice/loans/disburse": {
+      "controller": "LoanController.disburseLoan",
+      "method": "POST",
+      "path": "/backoffice/loans/disburse",
+      "validation": "disburseLoanSchema",
+      "requestBody": {
+        "loanId": "string (required)",
+        "amount": "number (optional)"
+      },
+      "response": "void",
+      "auth": "bearerAuth",
+      "idempotency": true,
+      "description": "Disburse approved loan"
+    },
+    "POST /backoffice/loans/:id/reject": {
+      "controller": "LoanController.rejectLoan",
+      "method": "POST",
+      "path": "/backoffice/loans/:id/reject",
+      "validation": "rejectLoanSchema",
+      "requestBody": {
+        "reason": "string (required)"
+      },
+      "response": "void",
+      "auth": "bearerAuth",
+      "description": "Reject loan application"
+    },
+    "GET /backoffice/loans/stats": {
+      "controller": "LoanController.getAdminLoanStats",
+      "method": "GET",
+      "path": "/backoffice/loans/stats",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "LoanStats",
+      "auth": "bearerAuth",
+      "description": "Get loan portfolio statistics"
+    },
+    "GET /backoffice/loans/category/:category": {
+      "controller": "LoanController.getLoansByCategory",
+      "method": "GET",
+      "path": "/backoffice/loans/category/:category",
+      "validation": "none",
+      "pathParams": {
+        "category": "string (enum: active|due|overdue|repaid)"
+      },
+      "response": "Loan[]",
+      "auth": "bearerAuth",
+      "description": "Get loans by category"
+    },
+    "POST /backoffice/loans/bulk-action": {
+      "controller": "AdminController.bulkLoanAction",
+      "method": "POST",
+      "path": "/backoffice/loans/bulk-action",
+      "validation": "bulkLoanActionSchema",
+      "requestBody": {
+        "loanIds": "string[] (required)",
+        "action": "string (required, enum: approve|reject)",
+        "reason": "string (optional)"
+      },
+      "response": "BulkActionResult",
+      "auth": "bearerAuth",
+      "description": "Bulk approve/reject loans"
+    },
+    "GET /backoffice/savings": {
+      "controller": "SavingsController.getPlans",
+      "method": "GET",
+      "path": "/backoffice/savings",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "SavingsPlan[]",
+      "auth": "bearerAuth",
+      "description": "Get savings plans"
+    },
+    "GET /backoffice/savings/stats": {
+      "controller": "AdminController.getSavingsStats",
+      "method": "GET",
+      "path": "/backoffice/savings/stats",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "SavingsStats",
+      "auth": "bearerAuth",
+      "description": "Get savings statistics"
+    },
+    "GET /backoffice/savings/by-category": {
+      "controller": "AdminController.getSavingsByCategory",
+      "method": "GET",
+      "path": "/backoffice/savings/by-category",
+      "validation": "flaggedQuerySchema",
+      "queryParams": {
+        "category": "string"
+      },
+      "response": "SavingsPlan[]",
+      "auth": "bearerAuth",
+      "description": "Get savings by category"
+    },
+    "GET /backoffice/dashboard": {
+      "controller": "AdminController.getDashboardStats",
+      "method": "GET",
+      "path": "/backoffice/dashboard",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "DashboardStats",
+      "auth": "bearerAuth",
+      "description": "Get admin dashboard statistics"
+    },
+    "GET /backoffice/system/health": {
+      "controller": "AdminController.getSystemHealth",
+      "method": "GET",
+      "path": "/backoffice/system/health",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "SystemHealth",
+      "auth": "bearerAuth",
+      "description": "Get system health overview"
+    },
+    "GET /backoffice/business-report": {
+      "controller": "AdminController.generateBusinessReport",
+      "method": "GET",
+      "path": "/backoffice/business-report",
+      "validation": "businessReportQuerySchema",
+      "queryParams": {
+        "from": "string (date-time, optional)",
+        "to": "string (date-time, optional)"
+      },
+      "response": "BusinessReport",
+      "auth": "bearerAuth",
+      "description": "Generate business/profit report"
+    },
+    "GET /backoffice/profits": {
+      "controller": "AdminController.getProfitReport",
+      "method": "GET",
+      "path": "/backoffice/profits",
+      "validation": "profitReportQuerySchema",
+      "queryParams": {
+        "from": "string (date-time, optional)",
+        "to": "string (date-time, optional)",
+        "service": "string (optional)"
+      },
+      "response": "ProfitReport",
+      "auth": "bearerAuth",
+      "description": "Get profit report by service"
+    },
+    "GET /backoffice/transactions/:traceId": {
+      "controller": "AdminController.getTransactionDetails",
+      "method": "GET",
+      "path": "/backoffice/transactions/:traceId",
+      "validation": "none",
+      "pathParams": {
+        "traceId": "string (required)"
+      },
+      "response": "TransactionDetails",
+      "auth": "bearerAuth",
+      "description": "Get transaction details by trace ID"
+    },
+    "POST /backoffice/transfers/:id/requery": {
+      "controller": "AdminController.requeryTransfer",
+      "method": "POST",
+      "path": "/backoffice/transfers/:id/requery",
+      "validation": "none",
+      "pathParams": {
+        "id": "string (required)"
+      },
+      "response": "RequeryResult",
+      "auth": "bearerAuth",
+      "description": "Re-query transfer and attempt reconciliation"
+    },
+    "GET /backoffice/reconciliation/inconsistencies": {
+      "controller": "AdminController.getReconciliationInconsistencies",
+      "method": "GET",
+      "path": "/backoffice/reconciliation/inconsistencies",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "ReconciliationInconsistency[]",
+      "auth": "bearerAuth",
+      "description": "Get reconciliation inconsistencies"
+    },
+    "GET /backoffice/transactions/flagged": {
+      "controller": "AdminController.getFlaggedTransactions",
+      "method": "GET",
+      "path": "/backoffice/transactions/flagged",
+      "validation": "flaggedQuerySchema",
+      "queryParams": {
+        "page": "integer (optional)",
+        "limit": "integer (optional)"
+      },
+      "response": "Transaction[]",
+      "auth": "bearerAuth",
+      "description": "Get flagged transactions"
+    },
+    "GET /backoffice/activity-logs": {
+      "controller": "AdminController.getAdminActivityLogs",
+      "method": "GET",
+      "path": "/backoffice/activity-logs",
+      "validation": "activityLogsQuerySchema",
+      "queryParams": {
+        "page": "integer (default: 1)",
+        "limit": "integer (default: 50)",
+        "adminId": "string (optional)"
+      },
+      "response": "PaginatedResponse<ActivityLog>",
+      "auth": "bearerAuth",
+      "description": "Get admin activity logs"
+    },
+    "GET /backoffice/settings": {
+      "controller": "AdminController.getSettings",
+      "method": "GET",
+      "path": "/backoffice/settings",
+      "validation": "none",
+      "requestBody": "none",
+      "response": "SystemSettings[]",
+      "auth": "bearerAuth",
+      "description": "Get admin settings"
+    },
+    "PUT /backoffice/settings": {
+      "controller": "AdminController.updateSettings",
+      "method": "PUT",
+      "path": "/backoffice/settings",
+      "validation": "none",
+      "requestBody": {
+        "settings": "SystemSettings[]"
+      },
+      "response": "SystemSettings[]",
+      "auth": "bearerAuth",
+      "description": "Update admin settings"
+    }
+  }
+}

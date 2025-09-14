@@ -1,0 +1,319 @@
+{
+  "mappings": {
+    "POST /api/users/login": {
+      "page": "Login",
+      "component": "LoginForm",
+      "inputs": {
+        "email": "string (email validation)",
+        "password": "string (min 6 chars)"
+      },
+      "outputs": {
+        "accessToken": "string",
+        "refreshToken": "string",
+        "admin": "Admin object"
+      },
+      "auth": "none",
+      "errorHandling": ["invalid credentials", "account locked", "network error"],
+      "notes": "Store tokens securely, redirect to dashboard on success"
+    },
+    "GET /backoffice/profile": {
+      "page": "Dashboard, Settings",
+      "component": "ProfileCard, ProfileForm",
+      "inputs": "none",
+      "outputs": "Admin object with permissions",
+      "auth": ["admin"],
+      "errorHandling": ["unauthorized", "token expired"],
+      "notes": "Used for profile display and permission checks"
+    },
+    "GET /backoffice/dashboard": {
+      "page": "Dashboard",
+      "component": "DashboardStats, KPICards",
+      "inputs": "none",
+      "outputs": {
+        "totalUsers": "number",
+        "activeUsers": "number",
+        "totalLoans": "number",
+        "activeLoans": "number",
+        "totalSavings": "number",
+        "totalTransactions": "number",
+        "totalRevenue": "number",
+        "systemHealth": "string"
+      },
+      "auth": ["admin"],
+      "errorHandling": ["data fetch error"],
+      "notes": "Main dashboard KPIs with refresh every 30 seconds"
+    },
+    "GET /backoffice/users": {
+      "page": "Users",
+      "component": "UsersTable, UserFilters",
+      "inputs": {
+        "page": "number (pagination)",
+        "limit": "number (page size)",
+        "status": "active|inactive (filter)",
+        "filter": "string (search term)"
+      },
+      "outputs": "PaginatedResponse<User>",
+      "auth": ["admin"],
+      "actions": ["view", "activate", "deactivate", "export"],
+      "columns": ["name", "email", "phone", "walletBalance", "status", "joinDate"],
+      "errorHandling": ["empty results", "filter error"],
+      "notes": "Server-side pagination with search and status filters"
+    },
+    "POST /backoffice/users/activate": {
+      "page": "Users",
+      "component": "ActivateUserModal",
+      "inputs": {
+        "userId": "string",
+        "status": "active|inactive"
+      },
+      "outputs": "void",
+      "auth": ["admin"],
+      "errorHandling": ["user not found", "permission denied"],
+      "notes": "Confirmation modal required for deactivation"
+    },
+    "GET /backoffice/loans": {
+      "page": "Loans",
+      "component": "LoansTable, LoanFilters",
+      "inputs": {
+        "page": "number",
+        "limit": "number",
+        "status": "pending|accepted|rejected"
+      },
+      "outputs": "PaginatedResponse<Loan>",
+      "auth": ["admin"],
+      "actions": ["view", "approve", "reject", "disburse", "bulk-action"],
+      "columns": ["borrower", "amount", "term", "status", "applicationDate", "interestRate"],
+      "errorHandling": ["empty results", "status filter error"],
+      "notes": "Color-coded status badges, bulk selection for actions"
+    },
+    "GET /backoffice/loans/:id": {
+      "page": "LoanDetail",
+      "component": "LoanDetailView, LoanHistory",
+      "inputs": {
+        "id": "string (loan ID)"
+      },
+      "outputs": "Loan with history",
+      "auth": ["admin"],
+      "actions": ["approve", "reject", "disburse", "view-history"],
+      "errorHandling": ["loan not found"],
+      "notes": "Full loan details with repayment schedule and history timeline"
+    },
+    "POST /backoffice/loans/disburse": {
+      "page": "LoanDetail, Loans",
+      "component": "DisburseLoanModal",
+      "inputs": {
+        "loanId": "string",
+        "amount": "number (optional override)"
+      },
+      "outputs": "void",
+      "auth": ["admin"],
+      "idempotency": true,
+      "errorHandling": ["insufficient funds", "loan already disbursed", "invalid amount"],
+      "notes": "Confirmation modal with amount verification, idempotency protection"
+    },
+    "POST /backoffice/loans/:id/reject": {
+      "page": "LoanDetail, Loans",
+      "component": "RejectLoanModal",
+      "inputs": {
+        "reason": "string (required)"
+      },
+      "outputs": "void",
+      "auth": ["admin"],
+      "errorHandling": ["loan already processed", "invalid reason"],
+      "notes": "Reason field required, confirmation modal"
+    },
+    "POST /backoffice/loans/bulk-action": {
+      "page": "Loans",
+      "component": "BulkLoanActionModal",
+      "inputs": {
+        "loanIds": "string[]",
+        "action": "approve|reject",
+        "reason": "string (optional for approve, required for reject)"
+      },
+      "outputs": "BulkActionResult",
+      "auth": ["admin"],
+      "errorHandling": ["partial failure", "no loans selected"],
+      "notes": "Progress indicator for bulk operations, detailed results summary"
+    },
+    "GET /backoffice/loans/stats": {
+      "page": "Dashboard, Loans",
+      "component": "LoanStatsCards, LoanCharts",
+      "inputs": "none",
+      "outputs": "LoanStats object",
+      "auth": ["admin"],
+      "errorHandling": ["stats calculation error"],
+      "notes": "Portfolio overview with charts for loan distribution and performance"
+    },
+    "GET /backoffice/savings": {
+      "page": "Savings",
+      "component": "SavingsTable",
+      "inputs": "none",
+      "outputs": "SavingsPlan[]",
+      "auth": ["admin"],
+      "actions": ["view", "edit", "activate", "deactivate"],
+      "columns": ["planName", "interestRate", "minAmount", "term", "status"],
+      "errorHandling": ["empty plans"],
+      "notes": "Savings products management"
+    },
+    "GET /backoffice/savings/stats": {
+      "page": "Dashboard, Savings",
+      "component": "SavingsStatsCards",
+      "inputs": "none",
+      "outputs": "SavingsStats object",
+      "auth": ["admin"],
+      "errorHandling": ["stats error"],
+      "notes": "Total savings, growth metrics, interest accrued"
+    },
+    "GET /backoffice/business-report": {
+      "page": "Reports",
+      "component": "BusinessReportView, DateRangePicker",
+      "inputs": {
+        "from": "date-time (optional)",
+        "to": "date-time (optional)"
+      },
+      "outputs": "BusinessReport with charts and tables",
+      "auth": ["admin"],
+      "actions": ["export-pdf", "export-csv", "schedule"],
+      "errorHandling": ["invalid date range", "no data"],
+      "notes": "Revenue, fees, transaction volumes with visualizations"
+    },
+    "GET /backoffice/profits": {
+      "page": "Reports",
+      "component": "ProfitReportView",
+      "inputs": {
+        "from": "date-time (optional)",
+        "to": "date-time (optional)",
+        "service": "string (optional filter)"
+      },
+      "outputs": "ProfitReport by service",
+      "auth": ["admin"],
+      "actions": ["export", "drill-down"],
+      "errorHandling": ["invalid service", "calculation error"],
+      "notes": "P&L breakdown by service/product line"
+    },
+    "GET /backoffice/transactions/:traceId": {
+      "page": "TransactionDetail",
+      "component": "TransactionDetailView, LedgerEntries",
+      "inputs": {
+        "traceId": "string"
+      },
+      "outputs": "TransactionDetails with ledger entries",
+      "auth": ["admin"],
+      "actions": ["view-ledger", "reconcile", "flag"],
+      "errorHandling": ["transaction not found"],
+      "notes": "Full transaction audit trail with double-entry ledger view"
+    },
+    "POST /backoffice/transfers/:id/requery": {
+      "page": "Transfers, TransactionDetail",
+      "component": "RequeryTransferButton",
+      "inputs": {
+        "id": "string (transfer ID)"
+      },
+      "outputs": "RequeryResult",
+      "auth": ["admin"],
+      "errorHandling": ["transfer not found", "provider error", "already reconciled"],
+      "notes": "Manual reconciliation trigger with provider status check"
+    },
+    "GET /backoffice/reconciliation/inconsistencies": {
+      "page": "Reconciliation",
+      "component": "InconsistenciesTable",
+      "inputs": "none",
+      "outputs": "ReconciliationInconsistency[]",
+      "auth": ["admin"],
+      "actions": ["resolve", "investigate", "mark-reviewed"],
+      "columns": ["type", "amount", "description", "affectedAccounts", "detectedDate"],
+      "errorHandling": ["no inconsistencies"],
+      "notes": "Automated inconsistency detection with resolution workflow"
+    },
+    "GET /backoffice/transactions/flagged": {
+      "page": "Transactions",
+      "component": "FlaggedTransactionsTable",
+      "inputs": {
+        "page": "number (optional)",
+        "limit": "number (optional)"
+      },
+      "outputs": "Transaction[] (flagged)",
+      "auth": ["admin"],
+      "actions": ["review", "approve", "investigate", "unflag"],
+      "columns": ["traceId", "amount", "type", "flagReason", "flaggedDate", "status"],
+      "errorHandling": ["no flagged transactions"],
+      "notes": "Risk management queue with investigation workflow"
+    },
+    "GET /backoffice/activity-logs": {
+      "page": "ActivityLogs",
+      "component": "ActivityLogsTable, AdminFilter",
+      "inputs": {
+        "page": "number",
+        "limit": "number",
+        "adminId": "string (optional filter)"
+      },
+      "outputs": "PaginatedResponse<ActivityLog>",
+      "auth": ["admin"],
+      "actions": ["view-details", "export"],
+      "columns": ["timestamp", "admin", "action", "resource", "ipAddress"],
+      "errorHandling": ["empty logs"],
+      "notes": "Audit trail with admin filtering and export capabilities"
+    },
+    "GET /backoffice/settings": {
+      "page": "Settings",
+      "component": "SettingsForm, SettingsCategories",
+      "inputs": "none",
+      "outputs": "SystemSettings[]",
+      "auth": ["admin"],
+      "actions": ["edit", "reset", "backup"],
+      "errorHandling": ["settings load error"],
+      "notes": "Categorized settings with validation and backup/restore"
+    },
+    "PUT /backoffice/settings": {
+      "page": "Settings",
+      "component": "SettingsForm",
+      "inputs": {
+        "settings": "SystemSettings[] (modified values)"
+      },
+      "outputs": "SystemSettings[] (updated)",
+      "auth": ["admin"],
+      "errorHandling": ["validation error", "save conflict"],
+      "notes": "Batch settings update with validation and confirmation"
+    },
+    "POST /backoffice/create": {
+      "page": "AdminManagement",
+      "component": "CreateAdminModal",
+      "inputs": {
+        "email": "string (email validation)",
+        "name": "string",
+        "surname": "string",
+        "password": "string (min 6)",
+        "phone": "string",
+        "is_super_admin": "boolean",
+        "permissions": "string[]"
+      },
+      "outputs": "Admin",
+      "auth": ["superAdmin"],
+      "errorHandling": ["email exists", "invalid permissions", "weak password"],
+      "notes": "Super admin only, permission selection with role templates"
+    },
+    "POST /backoffice/activate": {
+      "page": "AdminManagement",
+      "component": "ActivateAdminModal",
+      "inputs": {
+        "adminId": "string",
+        "status": "active|inactive"
+      },
+      "outputs": "void",
+      "auth": ["superAdmin"],
+      "errorHandling": ["admin not found", "cannot deactivate self"],
+      "notes": "Super admin only, confirmation required for deactivation"
+    },
+    "PUT /backoffice/:adminId/permissions": {
+      "page": "AdminManagement",
+      "component": "EditPermissionsModal",
+      "inputs": {
+        "permissions": "string[]"
+      },
+      "outputs": "Admin",
+      "auth": ["superAdmin"],
+      "errorHandling": ["invalid permissions", "admin not found"],
+      "notes": "Super admin only, permission matrix with role templates"
+    }
+  }
+}
