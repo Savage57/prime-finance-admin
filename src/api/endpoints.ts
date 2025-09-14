@@ -1,124 +1,144 @@
 import api, { postWithIdempotency } from './apiClient';
+import type {
+  User,
+  Loan,
+  Transaction,
+  Transfer,
+  SavingsPlan,
+  DashboardStats,
+  ActivityLog,
+  Settings,
+  ApiResponse,
+  PaginatedResponse,
+  LoginRequest,
+  CreateAdminRequest,
+  DisburseLoanRequest,
+  BulkLoanActionRequest,
+  UpdateSettingsRequest,
+} from '../types/api';
 
-// Types
-export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  walletBalance: number;
-}
-
-export interface Loan {
-  id: string;
-  amount: number;
-  repaidAmount: number;
-  remainingAmount: number;
-  monthlyPayment: number;
-  interestRate: number;
-  term: number;
-  status: 'pending' | 'active' | 'completed' | 'defaulted';
-  nextPaymentDate: string;
-}
-
-export interface Transaction {
-  id: string;
-  traceId: string;
-  type: 'transfer' | 'withdrawal' | 'deposit' | 'loan_repayment' | 'bill_payment';
-  amount: number;
-  status: 'pending' | 'success' | 'failed';
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Transfer {
-  id: string;
-  fromUserId: string;
-  toUserId?: string;
-  amount: number;
-  fee: number;
-  status: 'pending' | 'success' | 'failed';
-  type: 'internal' | 'external';
-  recipientAccount?: string;
-  description?: string;
-  createdAt: string;
-}
-
-// Auth endpoints
+// Authentication
 export const authApi = {
-  login: (email: string, password: string) =>
-    api.post('/api/users/login', { email, password }),
+  login: (data: LoginRequest) =>
+    api.post<ApiResponse<{ accessToken: string; refreshToken: string; admin: User }>>('/users/login', data),
   
   getProfile: () =>
-    api.get<User>('/backoffice/profile'),
+    api.get<ApiResponse<User>>('/backoffice/profile'),
+  
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.post<ApiResponse<void>>('/backoffice/change-password', data),
+  
+  updateProfile: (data: Partial<User>) =>
+    api.put<ApiResponse<User>>('/backoffice/update', data),
 };
 
-// Loan endpoints
+// User Management
+export const adminApi = {
+  createUser: (data: CreateAdminRequest, idempotencyKey?: string) =>
+    postWithIdempotency('/backoffice/create', data, idempotencyKey),
+  
+  activateUser: (adminId: string, isActive: boolean) =>
+    api.post<ApiResponse<void>>('/backoffice/activate', { adminId, isActive }),
+  
+  updatePermissions: (adminId: string, permissions: string[]) =>
+    api.put<ApiResponse<User>>(`/backoffice/${adminId}/permissions`, { permissions }),
+  
+  getUserProfile: (adminId: string) =>
+    api.get<ApiResponse<User>>(`/backoffice/${adminId}`),
+};
+
+// User Management
+export const userApi = {
+  getUsers: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
+    api.get<ApiResponse<PaginatedResponse<User>>>('/backoffice/users', { params }),
+  
+  activateUser: (userId: string, isActive: boolean) =>
+    api.post<ApiResponse<void>>('/backoffice/users/activate', { userId, isActive }),
+};
+
+// Loan Management
 export const loanApi = {
-  getLoans: () =>
-    api.get<Loan[]>('/backoffice/loans'),
+  getLoans: (params?: { 
+    page?: number; 
+    limit?: number; 
+    status?: string; 
+    category?: string;
+    userId?: string;
+  }) =>
+    api.get<ApiResponse<PaginatedResponse<Loan>>>('/backoffice/loans', { params }),
   
-  disburseLoan: (loanData: { userId: string; amount: number; term: number }, idempotencyKey?: string) =>
-    postWithIdempotency('/backoffice/loans/disburse', loanData, idempotencyKey),
+  getLoanDetails: (loanId: string) =>
+    api.get<ApiResponse<Loan>>(`/backoffice/loans/${loanId}`),
   
-  getStats: () =>
-    api.get('/backoffice/loans/stats'),
+  disburseLoan: (data: DisburseLoanRequest, idempotencyKey?: string) =>
+    postWithIdempotency('/backoffice/loans/disburse', data, idempotencyKey),
+  
+  rejectLoan: (loanId: string, reason: string) =>
+    api.post<ApiResponse<void>>(`/backoffice/loans/${loanId}/reject`, { reason }),
+  
+  getLoanStats: () =>
+    api.get<ApiResponse<any>>('/backoffice/loans/stats'),
+  
+  getLoansByCategory: (category: string) =>
+    api.get<ApiResponse<Loan[]>>(`/backoffice/loans/category/${category}`),
+  
+  bulkLoanAction: (data: BulkLoanActionRequest, idempotencyKey?: string) =>
+    postWithIdempotency('/backoffice/loans/bulk-action', data, idempotencyKey),
 };
 
-// Savings endpoints
+// Savings Management
 export const savingsApi = {
-  getSavings: (userId: string) =>
-    api.get(`/backoffice/savings/${userId}`),
+  getSavings: (params?: { page?: number; limit?: number; category?: string }) =>
+    api.get<ApiResponse<PaginatedResponse<SavingsPlan>>>('/backoffice/savings', { params }),
   
-  deposit: (amount: number, idempotencyKey?: string) =>
-    postWithIdempotency('/backoffice/savings/deposit', { amount }, idempotencyKey),
+  getSavingsStats: () =>
+    api.get<ApiResponse<any>>('/backoffice/savings/stats'),
   
-  withdraw: (amount: number, idempotencyKey?: string) =>
-    postWithIdempotency('/backoffice/savings/withdraw', { amount }, idempotencyKey),
+  getSavingsByCategory: (category: string) =>
+    api.get<ApiResponse<SavingsPlan[]>>(`/backoffice/savings/by-category`, { params: { category } }),
 };
 
-// Transfer endpoints
-export const transferApi = {
-  createTransfer: (transferData: {
-    toUserId?: string;
-    recipientAccount?: string;
-    amount: number;
-    type: 'internal' | 'external';
-    description?: string;
-  }, idempotencyKey?: string) =>
-    postWithIdempotency('/backoffice/transfers', transferData, idempotencyKey),
-  
-  getTransfer: (id: string) =>
-    api.get<Transfer>(`/backoffice/transfers/${id}`),
-  
-  requeryTransfer: (id: string, idempotencyKey?: string) =>
-    postWithIdempotency(`/backoffice/transfers/${id}/requery`, {}, idempotencyKey),
-};
-
-// Withdrawal endpoints
-export const withdrawalApi = {
-  createWithdrawal: (withdrawalData: {
-    amount: number;
-    bankAccount: string;
-    bankCode: string;
-    description?: string;
-  }, idempotencyKey?: string) =>
-    postWithIdempotency('/backoffice/withdrawals', withdrawalData, idempotencyKey),
-};
-
-// Transaction endpoints
-export const transactionApi = {
-  getTransaction: (traceId: string) =>
-    api.get<Transaction>(`/backoffice/transactions/${traceId}`),
-  
-  getFlaggedTransactions: () =>
-    api.get<Transaction[]>('/backoffice/transactions/flagged'),
-};
-
-// Dashboard endpoints
+// Dashboard & Reports
 export const dashboardApi = {
   getDashboard: () =>
-    api.get('/backoffice/dashboard'),
+    api.get<ApiResponse<DashboardStats>>('/backoffice/dashboard'),
+  
+  getSystemHealth: () =>
+    api.get<ApiResponse<{ status: string; checks: any[] }>>('/backoffice/system/health'),
+  
+  getBusinessReport: (params?: { startDate?: string; endDate?: string }) =>
+    api.get<ApiResponse<any>>('/backoffice/business-report', { params }),
+  
+  getProfitReport: (params?: { startDate?: string; endDate?: string }) =>
+    api.get<ApiResponse<any>>('/backoffice/profits', { params }),
+};
+
+// Transactions & Reconciliation
+export const transactionApi = {
+  getTransactionByTraceId: (traceId: string) =>
+    api.get<ApiResponse<Transaction>>(`/backoffice/transactions/${traceId}`),
+  
+  requeryTransfer: (transferId: string, idempotencyKey?: string) =>
+    postWithIdempotency(`/backoffice/transfers/${transferId}/requery`, {}, idempotencyKey),
+  
+  getReconciliationInconsistencies: () =>
+    api.get<ApiResponse<any[]>>('/backoffice/reconciliation/inconsistencies'),
+  
+  getFlaggedTransactions: () =>
+    api.get<ApiResponse<Transaction[]>>('/backoffice/transactions/flagged'),
+};
+
+// Activity Logs
+export const activityApi = {
+  getActivityLogs: (params?: { page?: number; limit?: number; adminId?: string }) =>
+    api.get<ApiResponse<PaginatedResponse<ActivityLog>>>('/backoffice/activity-logs', { params }),
+};
+
+// Settings
+export const settingsApi = {
+  getSettings: () =>
+    api.get<ApiResponse<Settings[]>>('/backoffice/settings'),
+  
+  updateSettings: (data: UpdateSettingsRequest) =>
+    api.put<ApiResponse<Settings[]>>('/backoffice/settings', data),
 };

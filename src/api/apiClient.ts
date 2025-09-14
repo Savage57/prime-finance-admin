@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  baseURL: process.env.VITE_API_BASE_URL || 'http://localhost:3000',
   withCredentials: false,
   timeout: 20000,
 });
@@ -17,8 +17,8 @@ api.interceptors.request.use((config) => {
 
 // Response interceptor for token refresh
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  (response: any) => response,
+  async (error: any) => {
     if (error.response?.status === 401) {
       const refreshToken = localStorage.getItem('auth.refreshToken');
       if (refreshToken) {
