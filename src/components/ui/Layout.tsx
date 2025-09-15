@@ -29,6 +29,7 @@ const navigation = [
   { name: 'Loans', href: '/loans', icon: CreditCard },
   { name: 'Savings', href: '/savings', icon: PiggyBank },
   { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
+  { name: 'Reports', href: '/reports', icon: Activity },
   { name: 'Admins', href: '/admins', icon: Shield },
   { name: 'Activity Logs', href: '/activity', icon: Activity },
   { name: 'Settings', href: '/settings', icon: Settings },

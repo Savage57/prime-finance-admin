@@ -8,6 +8,13 @@ import { Layout } from './components/ui/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Users } from './pages/Users';
+import { Loans } from './pages/Loans';
+import { Savings } from './pages/Savings';
+import { Transactions } from './pages/Transactions';
+import { Reports } from './pages/Reports';
+import { ActivityLogs } from './pages/ActivityLogs';
+import { AdminManagement } from './pages/AdminManagement';
+import { Settings } from './pages/Settings';
 import { useAuthStore } from './stores/authStore';
 
 const queryClient = new QueryClient({
@@ -48,13 +55,13 @@ function App() {
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/users" element={<Users />} />
-                        {/* Add more protected routes here */}
-                        <Route path="/loans" element={<div>Loans Page (Coming Soon)</div>} />
-                        <Route path="/savings" element={<div>Savings Page (Coming Soon)</div>} />
-                        <Route path="/transactions" element={<div>Transactions Page (Coming Soon)</div>} />
-                        <Route path="/admins" element={<div>Admins Page (Coming Soon)</div>} />
-                        <Route path="/activity" element={<div>Activity Logs Page (Coming Soon)</div>} />
-                        <Route path="/settings" element={<div>Settings Page (Coming Soon)</div>} />
+                        <Route path="/loans" element={<Loans />} />
+                        <Route path="/savings" element={<Savings />} />
+                        <Route path="/transactions" element={<Transactions />} />
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/admins" element={<AdminManagement />} />
+                        <Route path="/activity" element={<ActivityLogs />} />
+                        <Route path="/settings" element={<Settings />} />
                       </Routes>
                     </Layout>
                   </ProtectedRoute>
