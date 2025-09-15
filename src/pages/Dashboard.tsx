@@ -14,7 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { PageLoader } from '../components/ui/LoadingSpinner';
-import { dashboardApi, activityApi } from '../services/adminApi';
+import { dashboardApi, activityApi } from '../api/endpoints';
 import { formatCurrency } from '../utils/format';
 
 export function Dashboard() {
