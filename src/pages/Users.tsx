@@ -5,6 +5,7 @@ import { Search, Filter, UserCheck, UserX, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table';
 import { Badge } from '../components/ui/Badge';
+import { Input } from '../components/ui/Input';
 import { Button } from '../components/Button';
 import { PageLoader } from '../components/ui/LoadingSpinner';
 import { userApi } from '../api/endpoints';
