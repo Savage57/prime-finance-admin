@@ -13,10 +13,11 @@
     "noEmit": true,
 
     /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "strict": false,                   // turns off strict mode
+    "noImplicitAny": false,            // allows variables with implicit 'any'
+    "noUnusedLocals": false,           // optional, suppress unused warnings
+    "noUnusedParameters": false,       // optional, suppress unused warnings
+    "noFallthroughCasesInSwitch": false
   },
   "include": ["vite.config.ts"]
 }

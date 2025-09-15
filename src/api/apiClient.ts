@@ -31,7 +31,8 @@ api.interceptors.response.use(
           // Retry the original request
           error.config.headers.Authorization = `Bearer ${accessToken}`;
           return api.request(error.config);
-        } catch (refreshError) {
+        } catch (refreshError: any) {
+          console.error('Token refresh failed:', refreshError);
           localStorage.removeItem('auth.token');
           localStorage.removeItem('auth.refreshToken');
           window.location.href = '/login';
