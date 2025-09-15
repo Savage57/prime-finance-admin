@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/Button';
-import { Input } from '../components/ui/Input';zz
+import { Input } from '../components/ui/Input';
 import { PageLoader } from '../components/ui/LoadingSpinner';
-import { userApi } from '../services/adminApi';
+import { userApi } from '../api/endpoints';
 import { formatCurrency, formatDate } from '../utils/format';
 
 export function Users() {

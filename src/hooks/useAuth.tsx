@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
-import { authApi } from '../services/adminApi';
+import { authApi } from '../api/endpoints';
 import type { LoginRequest } from '../types/api';
 
 export function useAuth() {
