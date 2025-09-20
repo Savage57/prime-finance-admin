@@ -25,20 +25,30 @@ export function Savings() {
 
   const { data: savingsData, isLoading } = useQuery({
     queryKey: ['savings', page],
-    queryFn: () => savingsApi.getSavings({ page, limit: 20 }).then(res => res.data.data),
+    queryFn: () => savingsApi.getSavingsByCategory({ category: undefined, page, limit: 20 }).then(res => res.data.data),
   });
+
+  console.log('Savings Data:', savingsData);
 
   const { data: savingsStats } = useQuery({
     queryKey: ['savings-stats'],
     queryFn: () => savingsApi.getSavingsStats().then(res => res.data.data),
   });
 
+  console.log('Savings Stats:', savingsStats);
+
   if (isLoading) {
     return <PageLoader />;
   }
 
-  const savingsPlans = savingsData?.data || [];
-  const pagination = savingsData?.pagination;
+  const savingsPlans = savingsData?.plans || [];
+  const users = savingsData?.users || [];
+  const pagination = {
+    limit: 20,
+    page: savingsData?.page || 1,
+    total: savingsData?.total || 0,
+    pages: savingsData?.pages || 1
+  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -206,7 +216,7 @@ export function Savings() {
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="sm">
-                        {plan.status === 'active' ? (
+                        {plan.status === "ACTIVE" ? (
                           <ToggleRight className="h-4 w-4 text-green-600" />
                         ) : (
                           <ToggleLeft className="h-4 w-4 text-gray-400" />
@@ -228,7 +238,7 @@ export function Savings() {
       </Card>
 
       {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && pagination.pages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-700 dark:text-gray-300">
             Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
@@ -246,7 +256,7 @@ export function Savings() {
             <Button
               variant="outline"
               onClick={() => setPage(page + 1)}
-              disabled={page === pagination.totalPages}
+              disabled={page === pagination.pages}
             >
               Next
             </Button>

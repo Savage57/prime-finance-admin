@@ -25,7 +25,7 @@ export function Settings() {
   const [activeTab, setActiveTab] = useState('general');
   const queryClient = useQueryClient();
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: setting, isLoading } = useQuery({
     queryKey: ['settings'],
     queryFn: () => settingsApi.getSettings().then(res => res.data.data),
   });
@@ -72,26 +72,26 @@ export function Settings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Company Name
               </label>
-              <Input defaultValue="MyPrime Financial Services" />
+              <Input defaultValue={setting?.companyName} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Support Email
               </label>
-              <Input defaultValue="support@myprime.com" />
+              <Input defaultValue={setting?.companyEmail} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Phone Number
               </label>
-              <Input defaultValue="+234 800 123 4567" />
+              <Input defaultValue={setting?.companyPhone} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Timezone
               </label>
               <select className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-                <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
+                <option selected value="Africa/Lagos">Africa/Lagos (WAT)</option>
                 <option value="UTC">UTC</option>
               </select>
             </div>
@@ -103,7 +103,7 @@ export function Settings() {
             <textarea 
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               rows={3}
-              defaultValue="123 Financial District, Lagos, Nigeria"
+              defaultValue={setting?.companyAddress}
             />
           </div>
         </CardContent>
@@ -122,7 +122,7 @@ export function Settings() {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" />
+              <input type="checkbox" checked={setting?.maintenanceMode} className="sr-only peer" />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
             </label>
           </div>
@@ -217,25 +217,25 @@ export function Settings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Maximum Loan Amount (₦)
               </label>
-              <Input type="number" defaultValue="5000000" />
+              <Input type="number" defaultValue={setting?.maxLoanAmount} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Minimum Credit Score
               </label>
-              <Input type="number" defaultValue="600" />
+              <Input type="number" defaultValue={setting?.minCreditScore} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Default Interest Rate (%)
               </label>
-              <Input type="number" step="0.1" defaultValue="18.0" />
+              <Input type="number" step="0.1" defaultValue={setting?.savingsInterestRate} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Maximum Loan Term (months)
+                Maximum Loan Term (days)
               </label>
-              <Input type="number" defaultValue="36" />
+              <Input type="number" defaultValue={setting?.maxLoanTerm} />
             </div>
           </div>
           <div className="flex items-center justify-between">
@@ -246,7 +246,7 @@ export function Settings() {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" />
+              <input type="checkbox" checked={setting?.autoLoanApproval} className="sr-only peer" />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
             </label>
           </div>

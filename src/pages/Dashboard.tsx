@@ -5,7 +5,6 @@ import {
   Users,
   CreditCard,
   PiggyBank,
-  ArrowLeftRight,
   TrendingUp,
   TrendingDown,
   Activity,
@@ -24,25 +23,31 @@ export function Dashboard() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const { data: systemHealth } = useQuery({
+  console.log('Dashboard Data:', dashboardData);
+
+  const { data: systemHealth, isLoading: isHealthLoading } = useQuery({
     queryKey: ['system-health'],
     queryFn: () => dashboardApi.getSystemHealth().then(res => res.data.data),
     refetchInterval: 60000, // Refresh every minute
   });
 
-  const { data: recentActivity } = useQuery({
+  console.log('System Health:', systemHealth);
+
+  const { data: recentActivity, isLoading: isActivityLoading } = useQuery({
     queryKey: ['recent-activity'],
-    queryFn: () => activityApi.getActivityLogs({ limit: 5 }).then(res => res.data.data.data),
+    queryFn: () => activityApi.getActivityLogs({ limit: 5 }).then(res => res.data.data),
   });
 
-  if (isDashboardLoading) {
+  console.log('Recent Activity:', recentActivity);
+
+  if (isDashboardLoading || isHealthLoading || isActivityLoading) {
     return <PageLoader />;
   }
 
   const stats = [
     {
       title: 'Total Users',
-      value: dashboardData?.totalUsers || 0,
+      value: dashboardData.users.total || 0,
       change: '+12%',
       changeType: 'positive' as const,
       icon: Users,
@@ -50,7 +55,7 @@ export function Dashboard() {
     },
     {
       title: 'Active Loans',
-      value: dashboardData?.activeLoans || 0,
+      value: dashboardData.loans.active || 0,
       change: '+8%',
       changeType: 'positive' as const,
       icon: CreditCard,
@@ -58,7 +63,7 @@ export function Dashboard() {
     },
     {
       title: 'Total Savings',
-      value: formatCurrency(dashboardData?.totalSavings || 0),
+      value: formatCurrency(dashboardData.savings.totalPlans || 0),
       change: '+15%',
       changeType: 'positive' as const,
       icon: PiggyBank,
@@ -66,7 +71,7 @@ export function Dashboard() {
     },
     {
       title: 'Revenue',
-      value: formatCurrency(dashboardData?.totalRevenue || 0),
+      value: formatCurrency(dashboardData.revenue.totalRevenue || 0),
       change: '+23%',
       changeType: 'positive' as const,
       icon: TrendingUp,
@@ -90,7 +95,7 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       {/* System Health Alert */}
-      {systemHealth?.status !== 'healthy' && (
+      {systemHealth?.database !== 'healthy' && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -99,7 +104,7 @@ export function Dashboard() {
           <div className="flex items-center">
             <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-2" />
             <span className="text-yellow-800 dark:text-yellow-200">
-              System health status: {getHealthBadge(systemHealth?.status || 'unknown')}
+              System health status: {getHealthBadge(systemHealth.database || 'unknown')}
             </span>
           </div>
         </motion.div>
@@ -163,12 +168,12 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivity?.map((activity, index) => (
+                {(recentActivity?.logs || []).map((activity, index) => (
                   <div key={activity.id} className="flex items-start space-x-3">
                     <div className="w-2 h-2 bg-brand-500 rounded-full mt-2 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900 dark:text-white">
-                        <span className="font-medium">{activity.admin?.firstName} {activity.admin?.lastName}</span>
+                        <span className="font-medium">{activity.admin?.user_metadata?.first_name} {activity.admin?.user_metadata?.surname}</span>
                         {' '}{activity.action} {activity.resource}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -177,7 +182,7 @@ export function Dashboard() {
                     </div>
                   </div>
                 ))}
-                {(!recentActivity || recentActivity.length === 0) && (
+                {(!recentActivity || (recentActivity?.logs || []).length === 0) && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                     No recent activity
                   </p>
@@ -200,22 +205,22 @@ export function Dashboard() {
                   <Activity className="h-5 w-5 mr-2" />
                   System Health
                 </span>
-                {getHealthBadge(systemHealth?.status || 'unknown')}
+                {getHealthBadge(systemHealth?.database || 'unknown')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {systemHealth?.checks?.map((check, index) => (
+                {[...Object.entries(systemHealth?.providers || {}), ...Object.entries(systemHealth?.workers || {})].map(([name, status], index) => (
                   <div key={index} className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {check.name}
+                      {name}
                     </span>
-                    <Badge variant={check.status === 'healthy' ? 'success' : 'error'}>
-                      {check.status}
+                    <Badge variant={status === 'running' || status === 'healthy' ? 'success' : 'error'}>
+                      {status}
                     </Badge>
                   </div>
                 ))}
-                {(!systemHealth?.checks || systemHealth.checks.length === 0) && (
+                {(!systemHealth?.workers || Object.entries(systemHealth?.workers || {}).length === 0) && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                     No health checks available
                   </p>

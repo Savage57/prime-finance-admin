@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { 
   Search, 
-  Filter, 
   Eye, 
   CheckCircle, 
   XCircle, 
@@ -12,7 +11,12 @@ import {
   TrendingUp,
   AlertTriangle,
   Download,
-  MoreHorizontal
+  CreditCard,
+  UserPlus2,
+  Send,
+  LineChart,
+  TrendingDown,
+  CalendarX
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table';
@@ -23,6 +27,7 @@ import { PageLoader } from '../components/ui/LoadingSpinner';
 import { loanApi } from '../api/endpoints';
 import { formatCurrency, formatDate } from '../utils/format';
 import { toast } from 'react-hot-toast';
+import { Loan } from '../types/api';
 
 export function Loans() {
   const [page, setPage] = useState(1);
@@ -33,12 +38,15 @@ export function Loans() {
 
   const { data: loansData, isLoading } = useQuery({
     queryKey: ['loans', page, search, statusFilter],
-    queryFn: () => loanApi.getLoans({
+    queryFn: () => loanApi.getLoansByCategory({
       page,
       limit: 20,
-      status: statusFilter === 'all' ? undefined : statusFilter,
+      category: statusFilter === 'all' ? undefined : statusFilter,
+      search: search || undefined,
     }).then(res => res.data.data),
   });
+
+  console.log('Loan Data: ', loansData);
 
   const { data: loanStats } = useQuery({
     queryKey: ['loan-stats'],
@@ -85,30 +93,74 @@ export function Loans() {
     },
   });
 
-  if (isLoading) {
+  if (isLoading && !search) {
     return <PageLoader />;
   }
 
-  const loans = loansData?.data || [];
-  const pagination = loansData?.pagination;
+  const loans = loansData?.loans || [];
+  const users = loansData?.users || [];
+  const pagination = {
+    limit: 20,
+    page: loansData?.page || 1,
+    pages: loansData?.pages || 1,
+    total: loansData?.total || 0,
+  };
+
+  const convertBadge = (loan: Loan): string => {
+    const { status, loan_payment_status: payStatus, repayment_date } = loan;
+    const now = new Date();
+    const repaymentDate = new Date(repayment_date);
+
+    // Normalize dates to day-level (ignore hours/minutes)
+    const isSameDay = (d1: Date, d2: Date) =>
+      d1.toDateString() === d2.toDateString();
+
+    const isDue = isSameDay(repaymentDate, now);
+    const isOverdue = repaymentDate < now && !isDue;
+
+    if (status === "pending") return "pending";
+    if (status === "rejected") return "rejected";
+
+    if (status === "accepted") {
+      if ((payStatus === "not-started" || payStatus === "in-progress") && isOverdue)
+        return "overdue";
+      if ((payStatus === "not-started" || payStatus === "in-progress") && isDue)
+        return "due";
+      if (payStatus === "not-started") return "not-started";
+      if (payStatus === "in-progress") return "in-progress";
+      if (payStatus === "complete") return "completed";
+      return "active";
+    }
+
+    return "unknown"; // fallback
+  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      pending: 'warning',
-      approved: 'info',
-      disbursed: 'success',
-      active: 'success',
-      completed: 'default',
-      overdue: 'error',
-      rejected: 'error'
+      pending: "warning",
+      active: "info",
+      completed: "success",
+      overdue: "error",
+      due: "warning",
+      rejected: "error",
+      "not-started": "error",
+      "in-progress": "warning",
+      unknown: "default",
     } as const;
-    
-    return <Badge variant={variants[status as keyof typeof variants] || 'default'}>{status}</Badge>;
+
+    return (
+      <Badge variant={variants[status as keyof typeof variants] || "default"}>
+        {status}
+      </Badge>
+    );
   };
 
   const handleLoanAction = (loanId: string, action: 'approve' | 'reject' | 'disburse') => {
     if (action === 'disburse') {
-      disburseLoanMutation.mutate({ loanId });
+      const amount = prompt('Please enter the amount to disburse:');
+      if (amount) {
+        disburseLoanMutation.mutate({ loanId, amount: Number(amount) });
+      }
     } else if (action === 'reject') {
       const reason = prompt('Please provide a reason for rejection:');
       if (reason) {
@@ -176,7 +228,7 @@ export function Loans() {
                   <div>
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Loans</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loanStats.totalLoans || 0}
+                      {loanStats.totalLoans.toLocaleString("en-US") || 0}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
@@ -192,9 +244,9 @@ export function Loans() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending ({loanStats.pendingLoans?.toLocaleString("en-US") || 0})</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loanStats.pendingLoans || 0}
+                      ₦{loanStats.pendingAmount.toLocaleString("en-US") || 0}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/20">
@@ -210,13 +262,13 @@ export function Loans() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active ({ loanStats.activeLoans?.toLocaleString("en-US") || 0})</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loanStats.activeLoans || 0}
+                      ₦{loanStats.activeAmount.toLocaleString("en-US") || 0}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
-                    <TrendingUp className="h-6 w-6 text-green-600" />
+                    <LineChart className="h-6 w-6 text-green-600" />
                   </div>
                 </div>
               </CardContent>
@@ -228,13 +280,157 @@ export function Loans() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Overdue</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Overdue ({ loanStats.overdueLoans?.toLocaleString("en-US") || 0})</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loanStats.overdueLoans || 0}
+                      ₦{loanStats.overdueAmount?.toLocaleString("en-US") || 0}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/20">
-                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                    <CalendarX className="h-6 w-6 text-red-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Fully Repaid ({ loanStats.repaidLoans?.toLocaleString("en-US") || 0 })</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      ₦{loanStats.repaidAmount.toLocaleString("en-US") || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Repaying ({ loanStats.repaidingLoans?.toLocaleString("en-US") || 0 })</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      ₦{loanStats.repaidingAmount.toLocaleString("en-US") || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
+                    <CreditCard className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Not Started</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {loanStats.notStarted?.toLocaleString("en-US") || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/20">
+                    <XCircle className="h-6 w-6 text-red-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Due ({loanStats.dueLoans?.toLocaleString("en-US") || 0})</p>
+                    <p className="text-2xl font-bold text-gray-900 pr-2 dark:text-white">
+                      ₦{loanStats.dueAmount?.toLocaleString("en-US") || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-orange-100 dark:bg-orange-900/20">
+                    <AlertTriangle className="h-6 w-6 text-orange-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Applied ({ loanStats.appliedUsers.toLocaleString("en-US") || 0 })</p>
+                    <p className="text-2xl font-bold text-gray-900 pr-2 dark:text-white">
+                      ₦{loanStats.totalApplied.toLocaleString("en-US") || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/20">
+                    <UserPlus2 className="h-6 w-6 text-purple-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Disbursed ({loanStats.disbursedUsers.toLocaleString("en-US") || 0})</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      ₦{loanStats.totalDisbursed.toLocaleString("en-US") || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
+                    <Send className="h-6 w-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Realized Profits</p>
+                    <p className="text-2xl font-bold text-gray-900 pr-2 dark:text-white">
+                      ₦{loanStats.realizedProfit.toLocaleString("en-US") || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-violet-100 dark:bg-violet-900/20">
+                    <TrendingUp className="h-6 w-6 text-violet-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Unrealized Profits</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      ₦{loanStats.unrealizedProfit.toLocaleString("en-US") || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/20">
+                    <TrendingDown className="h-6 w-6 text-red-600" />
                   </div>
                 </div>
               </CardContent>
@@ -265,12 +461,11 @@ export function Loans() {
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="disbursed">Disbursed</option>
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
                 <option value="overdue">Overdue</option>
+                <option value="due">Due</option>
+                <option value="pending">Pending</option>
                 <option value="rejected">Rejected</option>
               </select>
             </div>
@@ -288,6 +483,7 @@ export function Loans() {
               </span>
               <div className="flex gap-2">
                 <Button 
+                  variant="secondary"
                   size="sm" 
                   onClick={() => handleBulkAction('approve')}
                   disabled={bulkActionMutation.isPending}
@@ -364,10 +560,10 @@ export function Loans() {
                       {formatCurrency(loan.amount)}
                     </span>
                   </TableCell>
-                  <TableCell>{loan.duration} months</TableCell>
-                  <TableCell>{loan.percentage}%</TableCell>
-                  <TableCell>{getStatusBadge(loan.status)}</TableCell>
-                  <TableCell>{formatDate(loan.created_at)}</TableCell>
+                  <TableCell>{loan.duration} days</TableCell>
+                  <TableCell>{loan.percentage || 10}%</TableCell>
+                  <TableCell>{getStatusBadge(convertBadge(loan))}</TableCell>
+                  <TableCell>{formatDate(loan.createdAt)}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Button variant="outline" size="sm">
@@ -376,8 +572,9 @@ export function Loans() {
                       {loan.status === 'pending' && (
                         <>
                           <Button 
+                            variant='secondary'
                             size="sm" 
-                            onClick={() => handleLoanAction(loan._id, 'approve')}
+                            onClick={() => handleLoanAction(loan._id, 'disburse')}
                           >
                             <CheckCircle className="h-4 w-4" />
                           </Button>
@@ -389,15 +586,6 @@ export function Loans() {
                             <XCircle className="h-4 w-4" />
                           </Button>
                         </>
-                      )}
-                      {loan.status === 'approved' && (
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleLoanAction(loan._id, 'disburse')}
-                          disabled={disburseLoanMutation.isPending}
-                        >
-                          <DollarSign className="h-4 w-4" />
-                        </Button>
                       )}
                     </div>
                   </TableCell>
@@ -415,7 +603,7 @@ export function Loans() {
       </Card>
 
       {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && pagination.total > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-700 dark:text-gray-300">
             Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
@@ -433,7 +621,7 @@ export function Loans() {
             <Button
               variant="outline"
               onClick={() => setPage(page + 1)}
-              disabled={page === pagination.totalPages}
+              disabled={page === pagination.total}
             >
               Next
             </Button>

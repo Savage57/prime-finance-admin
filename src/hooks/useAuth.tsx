@@ -19,6 +19,8 @@ export function useAuth() {
   const loginMutation = useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
     onSuccess: (response) => {
+      console.log('Login response:', response);
+      
       const { accessToken, refreshToken, admin } = response.data.data;
       setAuth(admin, accessToken, refreshToken);
       queryClient.invalidateQueries({ queryKey: ['admin-profile'] });

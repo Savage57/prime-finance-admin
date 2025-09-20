@@ -15,12 +15,15 @@ import type {
   DisburseLoanRequest,
   BulkLoanActionRequest,
   UpdateSettingsRequest,
+  SystemHealth,
+  BusinessReport,
+  BillPayment,
 } from '../types/api';
 
 // Authentication
 export const authApi = {
   login: (data: LoginRequest) =>
-    api.post<ApiResponse<{ accessToken: string; refreshToken: string; admin: User }>>('/users/login', data),
+    api.post<ApiResponse<{ accessToken: string; refreshToken: string; admin: User }>>('/backoffice/login', data),
   
   getProfile: () =>
     api.get<ApiResponse<User>>('/backoffice/profile'),
@@ -50,8 +53,8 @@ export const adminApi = {
 // User Management
 export const userApi = {
   getUsers: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
-    api.get<ApiResponse<PaginatedResponse<User>>>('/backoffice/users', { params }),
-  
+    api.get<PaginatedResponse<{ users: User[], page: number, total: number, pages: number }>>('/backoffice/users', { params }),
+
   activateUser: (userId: string, isActive: boolean) =>
     api.post<ApiResponse<void>>('/backoffice/users/activate', { userId, isActive }),
 };
@@ -65,7 +68,7 @@ export const loanApi = {
     category?: string;
     userId?: string;
   }) =>
-    api.get<ApiResponse<PaginatedResponse<Loan>>>('/backoffice/loans', { params }),
+    api.get<PaginatedResponse<Loan[]> & { page: number, total: number, pages: number }>('/backoffice/loans', { params }),
   
   getLoanDetails: (loanId: string) =>
     api.get<ApiResponse<Loan>>(`/backoffice/loans/${loanId}`),
@@ -78,10 +81,10 @@ export const loanApi = {
   
   getLoanStats: () =>
     api.get<ApiResponse<any>>('/backoffice/loans/stats'),
-  
-  getLoansByCategory: (category: string) =>
-    api.get<ApiResponse<Loan[]>>(`/backoffice/loans/category/${category}`),
-  
+
+  getLoansByCategory: (params: { category: string, page: number, limit: number, search: string }) =>
+    api.get<PaginatedResponse<{ loans: Loan[], page: number, total: number, pages: number, users: User[] }>>(`/backoffice/loans/category/${params.category}`, { params }),
+
   bulkLoanAction: (data: BulkLoanActionRequest, idempotencyKey?: string) =>
     postWithIdempotency('/backoffice/loans/bulk-action', data, idempotencyKey),
 };
@@ -89,13 +92,13 @@ export const loanApi = {
 // Savings Management
 export const savingsApi = {
   getSavings: (params?: { page?: number; limit?: number; category?: string }) =>
-    api.get<ApiResponse<PaginatedResponse<SavingsPlan>>>('/backoffice/savings', { params }),
+    api.get<PaginatedResponse<SavingsPlan[]>>('/backoffice/savings', { params }),
   
   getSavingsStats: () =>
     api.get<ApiResponse<any>>('/backoffice/savings/stats'),
   
-  getSavingsByCategory: (category: string) =>
-    api.get<ApiResponse<SavingsPlan[]>>(`/backoffice/savings/by-category`, { params: { category } }),
+  getSavingsByCategory: (params: {category: string, page: number, limit: number}) =>
+    api.get<ApiResponse<{ plans: SavingsPlan[], users: User[], page: number, pages: number, total: number }>>(`/backoffice/savings/by-category`, { params }),
 };
 
 // Dashboard & Reports
@@ -104,12 +107,12 @@ export const dashboardApi = {
     api.get<ApiResponse<DashboardStats>>('/backoffice/dashboard'),
   
   getSystemHealth: () =>
-    api.get<ApiResponse<{ status: string; checks: any[] }>>('/backoffice/system/health'),
+    api.get<ApiResponse<SystemHealth>>('/backoffice/system/health'),
   
-  getBusinessReport: (params?: { startDate?: string; endDate?: string }) =>
-    api.get<ApiResponse<any>>('/backoffice/business-report', { params }),
+  getBusinessReport: (params?: { from?: string; to?: string }) =>
+    api.get<ApiResponse<BusinessReport>>('/backoffice/business-report', { params }),
   
-  getProfitReport: (params?: { startDate?: string; endDate?: string }) =>
+  getProfitReport: (params?: { from?: string; to?: string }) =>
     api.get<ApiResponse<any>>('/backoffice/profits', { params }),
 };
 
@@ -125,13 +128,16 @@ export const transactionApi = {
     api.get<ApiResponse<any[]>>('/backoffice/reconciliation/inconsistencies'),
   
   getFlaggedTransactions: () =>
-    api.get<ApiResponse<Transaction[]>>('/backoffice/transactions/flagged'),
+    api.get<ApiResponse<{ transfers: Transfer[], billPayments: BillPayment[], loans: Loan[] }>>('/backoffice/transactions/flagged'),
+
+  getTransactions: (params: { page?: number; limit?: number, search?: string, status?: string, type?: string }) =>
+    api.get<ApiResponse<{ transfers: Transfer[], page: number, pages: number, total: number }>>('/backoffice/transactions', { params }),
 };
 
 // Activity Logs
 export const activityApi = {
   getActivityLogs: (params?: { page?: number; limit?: number; adminId?: string }) =>
-    api.get<ApiResponse<PaginatedResponse<ActivityLog>>>('/backoffice/activity-logs', { params }),
+    api.get<PaginatedResponse<ActivityLog>>('/backoffice/activity-logs', { params }),
 };
 
 // Settings

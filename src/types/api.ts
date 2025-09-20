@@ -74,7 +74,7 @@ export interface User {
   phone: string;
   role: USERROLES;
   status: USERSTATUS;
-  updated_at: string;
+  updatedAt: string;
   user_metadata: {
     bvn?: string;
     nin?: string;
@@ -110,6 +110,7 @@ export interface User {
     account_number: string;
   }[];
   permissions: AdminPermission[];
+  createdAt: string;
 }
 
 /**
@@ -195,8 +196,8 @@ export interface Loan {
     adminId: string | "system";
     date: string;
   };
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BulkLoanActionRequest {
@@ -228,25 +229,6 @@ export interface Transfer {
   processedAt?: Date;
   meta?: Record<string, any>;
   createdAt: Date;
-}
-
-export interface Transaction {
-  _id: string;
-  traceId: string;
-  userId?: string;
-  account: string;
-  entryType: "DEBIT" | "CREDIT";
-  category: "bill-payment" | "transfer" | "loan" | "savings" | "fee" | "refund" | "settlement" | "escrow";
-  subtype?: string;
-  amount: number;
-  currency: string;
-  balanceBefore?: number;
-  balanceAfter?: number;
-  status: "PENDING" | "COMPLETED" | "FAILED";
-  relatedTo?: string;
-  meta?: Record<string, any>;
-  createdAt: Date;
-  processedAt?: Date;
 }
 
 /**
@@ -306,10 +288,23 @@ export interface AdminStats {
 }
 
 export interface SystemHealth {
-  database: string;
-  redis: string;
-  providers: { vfd: string; clubConnect: string };
-  workers: Record<string, string>;
+  database: 'healthy' | 'warning' | 'critical';
+  redis: 'healthy' | 'warning' | 'critical';
+  providers: {
+    vfd: 'healthy' | 'warning' | 'critical';
+    clubConnect: 'healthy' | 'warning' | 'critical';
+    flutterwave: 'healthy' | 'warning' | 'critical';
+    paystack: 'healthy' | 'warning' | 'critical';
+    monnify: 'healthy' | 'warning' | 'critical';
+    [key: string]: string; // fallback for any additional providers
+  };
+  workers: {
+    billPaymentsPoller: 'running' | 'stopped' | 'error';
+    transfersPoller: 'running' | 'stopped' | 'error';
+    loanPenalties: 'running' | 'stopped' | 'error';
+    savingsMaturities: 'running' | 'stopped' | 'error';
+    [key: string]: string; // fallback for any additional workers
+  };
 }
 
 export interface BusinessReport {
@@ -332,19 +327,27 @@ export interface FlaggedTransactions {
  * ==============================
  */
 export interface Settings {
-  autoLoanApproval: boolean;
-  maxLoanAmount: number;
-  minCreditScore: number;
-  loanEnabled: boolean;
-  transferEnabled: boolean;
-  transferDailyLimit: number;
-  savingsEnabled: boolean;
-  billPaymentEnabled: boolean;
-  savingsPenalty: number;
-  savingsInterestRate: number;
-  updatedBy: string;
-  updatedAt: Date;
-}
+    autoLoanApproval: boolean;         // enable/disable automatic loan approval
+    maxLoanAmount: number;             // maximum loan amount allowed
+    minCreditScore: number;            // minimum credit score required
+    maxLoanTerm: number;               // maximum loan term in months/days
+    loanEnabled: boolean;              // toggle loan feature
+    transferEnabled: boolean;          // toggle transfers
+    transferDailyLimit: number;        // daily transfer cap
+    savingsEnabled: boolean;           // toggle savings
+    billPaymentEnabled: boolean;       // toggle bill payments
+    savingsPenalty: number;            // penalty for early withdrawal
+    savingsInterestRate: number;       // e.g., 0.025 = 2.5%
+    updatedBy: string;                 // adminId who last updated
+    updatedAt: Date;                   // last updated timestamp
+    companyName: string;
+    companyPhone: string;
+    companyEmail: string;
+    companyAddress: string;
+    companyTimezone: string;
+    maintenanceMode: boolean;          // put platform in maintenance mode
+    singleton: string;
+  }
 
 /**
  * ==============================
@@ -352,19 +355,15 @@ export interface Settings {
  * ==============================
  */
 export interface ApiResponse<T> {
-  success: boolean;
+  success: string;
   data: T;
   message?: string;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface PaginatedResponse<T>  {
+  data: T;
+  success: string;
+  message?: string;
 }
 
 export interface LoginRequest {
@@ -377,27 +376,66 @@ export interface UpdateSettingsRequest {
 }
 
 export interface DashboardStats {
-  totalUsers: number;
-  activeUsers: number;
-  totalLoans: number;
-  activeLoans: number;
-  totalSavings: number;
-  totalTransactions: number;
-  totalRevenue: number;
-  systemHealth: 'healthy' | 'warning' | 'critical';
+  users: {
+    total: number;
+    active: number;
+    inactive: number;
+    newThisMonth: number;
+  };
+  loans: {
+    total: number;
+    pending: number;
+    active: number;
+    overdue: number;
+    totalDisbursed: number;
+    totalOutstanding: number;
+  };
+  transfers: {
+    total: number;
+    pending: number;
+    completed: number;
+    failed: number;
+    totalVolume: number;
+  };
+  billPayments: {
+    total: number;
+    pending: number;
+    completed: number;
+    failed: number;
+    totalVolume: number;
+  };
+  savings: {
+    totalPlans: number;
+    activePlans: number;
+    totalPrincipal: number;
+    totalInterestEarned: number;
+  };
+  revenue: {
+    totalRevenue: number;
+    loanInterest: number;
+    billPaymentFees: number;
+    transferFees: number;
+    savingsPenalties: number;
+  };
 }
 
+
 export interface ActivityLog {
-  id: string;
-  adminId: string;
-  action: string;
-  resource: string;
-  resourceId: string;
-  details: Record<string, any>;
-  ipAddress: string;
-  userAgent: string;
-  createdAt: string;
-  admin?: User;
+  logs: {
+    id: string;
+    adminId: string;
+    action: string;
+    resource: string;
+    resourceId: string;
+    details: Record<string, any>;
+    ipAddress: string;
+    userAgent: string;
+    createdAt: string;
+    admin?: User;
+  }[];
+  page: number;
+  total: number;
+  pages: number;
 }
 
 export interface LoginRequest {

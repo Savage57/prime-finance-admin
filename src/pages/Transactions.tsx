@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { 
-  Search, 
-  Filter, 
+  Search,
   Eye, 
-  AlertTriangle,
   CheckCircle,
   XCircle,
   ArrowUpRight,
   ArrowDownLeft,
-  RefreshCw,
-  Download
+  Download,
+  ArrowLeftRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table';
@@ -24,19 +21,61 @@ import { formatCurrency, formatDateTime } from '../utils/format';
 
 export function Transactions() {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [status, setStatus] = useState('all');
+  const [type, setType] = useState('all');
+  const [page, setPage] = useState(1);
 
-  const { data: flaggedTransactions, isLoading } = useQuery({
-    queryKey: ['flagged-transactions'],
-    queryFn: () => transactionApi.getFlaggedTransactions().then(res => res.data.data),
+  const { data: transactionData, isLoading } = useQuery({
+    queryKey: ['transactions', page, search, status, type],
+    queryFn: () => transactionApi.getTransactions({ 
+      page, 
+      limit: 20,
+      search: search || undefined,
+      status: status === 'all' ? undefined : status,
+      type: type === 'all' ? undefined : type
+    }).then(res => res.data.data),
   });
 
-  if (isLoading) {
+  if (isLoading && !search) {
     return <PageLoader />;
   }
 
-  const transactions = flaggedTransactions || [];
+  console.log('Transaction Data: ', transactionData)
+
+  const transactions = transactionData?.transfers || [];
+
+  const pagination = {
+    page: transactionData?.page || 1,
+    limit: 20,
+    pages: transactionData?.pages || 1,
+    total: transactionData?.total || 0,
+  };
+
+  const pageFunc = () => pagination && pagination.pages > 1 && (
+    <div className="flex items-center justify-between">
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
+        {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+        {pagination.total} results
+      </p>
+      <div className="flex space-x-2">
+        <Button
+          variant="outline"
+          onClick={() => setPage(page - 1)}
+          disabled={page === 1}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setPage(page + 1)}              
+          disabled={page === pagination.pages}
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  );
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -48,17 +87,6 @@ export function Transactions() {
     return <Badge variant={variants[status as keyof typeof variants] || 'default'}>{status}</Badge>;
   };
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'transfer':
-        return <ArrowUpRight className="h-4 w-4" />;
-      case 'loan':
-        return <ArrowDownLeft className="h-4 w-4" />;
-      default:
-        return <RefreshCw className="h-4 w-4" />;
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -66,7 +94,7 @@ export function Transactions() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Transaction Management</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Monitor and manage flagged transactions
+            Monitor and manage transactions
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -94,8 +122,8 @@ export function Transactions() {
             </div>
             <div className="flex gap-2">
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 <option value="all">All Status</option>
@@ -104,43 +132,25 @@ export function Transactions() {
                 <option value="FAILED">Failed</option>
               </select>
               <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+                value={type}
+                onChange={(e) => setType(e.target.value)}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 <option value="all">All Types</option>
-                <option value="transfer">Transfer</option>
-                <option value="loan">Loan</option>
-                <option value="savings">Savings</option>
-                <option value="bill-payment">Bill Payment</option>
+                <option value="inter">Inter Transfer</option>
+                <option value="intra">Intra Transfer</option>
               </select>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Flagged Transactions Alert */}
-      {transactions.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4"
-        >
-          <div className="flex items-center">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-2" />
-            <span className="text-yellow-800 dark:text-yellow-200">
-              {transactions.length} flagged transaction(s) require review
-            </span>
-          </div>
-        </motion.div>
-      )}
-
       {/* Transactions Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <AlertTriangle className="h-5 w-5 mr-2 text-yellow-600" />
-            Flagged Transactions ({transactions.length})
+            <ArrowLeftRight className="h-5 w-5 mr-2 text-blue-600" />
+            Trasaction ({transactions.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -148,7 +158,8 @@ export function Transactions() {
             <TableHeader>
               <TableRow>
                 <TableHead>Trace ID</TableHead>
-                <TableHead>Account</TableHead>
+                <TableHead>From Account</TableHead>
+                <TableHead>To Account</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Amount</TableHead>
@@ -167,25 +178,24 @@ export function Transactions() {
                   </TableCell>
                   <TableCell>
                     <div className="font-medium text-gray-900 dark:text-white">
-                      {transaction.account}
+                      {transaction.fromAccount}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {transaction.toAccount}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center">
-                      {transaction.entryType === 'DEBIT' ? (
-                        <ArrowUpRight className="h-4 w-4 text-red-500 mr-2" />
+                      {transaction.transferType === 'inter' ? (
+                        <ArrowUpRight className="h-4 w-4 text-blue-500 mr-2" />
                       ) : (
                         <ArrowDownLeft className="h-4 w-4 text-green-500 mr-2" />
                       )}
-                      <Badge variant={transaction.entryType === 'DEBIT' ? 'error' : 'success'}>
-                        {transaction.entryType}
+                      <Badge variant={transaction.transferType === 'inter' ? 'info' : 'success'}>
+                        {transaction.transferType}
                       </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      {getCategoryIcon(transaction.category)}
-                      <span className="ml-2 capitalize">{transaction.category}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -216,12 +226,14 @@ export function Transactions() {
           {transactions.length === 0 && (
             <div className="text-center py-12">
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">No flagged transactions</p>
+              <p className="text-gray-500 dark:text-gray-400">No transactions</p>
               <p className="text-sm text-gray-400 dark:text-gray-500">All transactions are processing normally</p>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {pageFunc()}
     </div>
   );
 }

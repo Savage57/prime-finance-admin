@@ -16,12 +16,13 @@ import { ActivityLogs } from './pages/ActivityLogs';
 import { AdminManagement } from './pages/AdminManagement';
 import { Settings } from './pages/Settings';
 import { useAuthStore } from './stores/authStore';
+import { FlaggedOperations } from './pages/FlaggedOperations';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      cacheTime: 10 * 60 * 1000, // 30 minutes
       retry: 1,
       refetchOnWindowFocus: false,
     },
@@ -58,6 +59,7 @@ function App() {
                         <Route path="/loans" element={<Loans />} />
                         <Route path="/savings" element={<Savings />} />
                         <Route path="/transactions" element={<Transactions />} />
+                        <Route path="/flagged" element={<FlaggedOperations />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/admins" element={<AdminManagement />} />
                         <Route path="/activity" element={<ActivityLogs />} />

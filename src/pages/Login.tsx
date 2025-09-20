@@ -49,9 +49,9 @@ export function Login() {
       {/* Theme toggle */}
       <button
         onClick={toggleTheme}
-        className="absolute top-6 right-6 p-2 rounded-lg bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-shadow"
+        className={`absolute top-6 right-6 ${theme === 'light' ? 'text-black' : 'text-white'} px-3 py-2 rounded-lg bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-shadow`}
       >
-        {theme === 'light' ? '🌙' : '☀️'}
+        {theme === 'light' ? '✦' : '☀︎'}
       </button>
 
       <motion.div

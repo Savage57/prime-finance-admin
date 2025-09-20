@@ -26,12 +26,19 @@ export function Users() {
     }).then(res => res.data.data),
   });
 
-  if (isLoading) {
+  console.log('Users Data:', usersData);
+
+  if (!search && isLoading) {
     return <PageLoader />;
   }
 
-  const users = usersData?.data || [];
-  const pagination = usersData?.pagination;
+  const users = usersData?.users || [];
+  const pagination = {
+    page: usersData?.page || 1,
+    limit: 20,
+    pages: usersData?.pages || 1,
+    total: usersData?.total || 0,
+  };
 
   return (
     <div className="space-y-6">
@@ -54,8 +61,7 @@ export function Users() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search users by name or email..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => e.target.value.length >= 3 ? setSearch(e.target.value) : setSearch('')}
                   className="pl-10"
                 />
               </div>
@@ -97,20 +103,20 @@ export function Users() {
             </TableHeader>
             <TableBody>
               {users.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user._id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center">
                         <span className="text-white text-sm font-medium">
-                          {user.firstName[0]}{user.lastName[0]}
+                          {user.user_metadata?.first_name[0]}{user.user_metadata.surname[0]}
                         </span>
                       </div>
                       <div>
                         <div className="font-medium text-gray-900 dark:text-white">
-                          {user.firstName} {user.lastName}
+                          {user.user_metadata?.first_name} {user.user_metadata?.surname}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          ID: {user.id.slice(0, 8)}...
+                          ID: {user._id.slice(0, 8)}...
                         </div>
                       </div>
                     </div>
@@ -119,12 +125,12 @@ export function Users() {
                   <TableCell>{user.phone}</TableCell>
                   <TableCell>
                     <span className="font-medium">
-                      {formatCurrency(user.walletBalance)}
+                      {formatCurrency(Number(user.user_metadata?.wallet) || 0)}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.isActive ? 'success' : 'error'}>
-                      {user.isActive ? 'Active' : 'Inactive'}
+                    <Badge variant={user.status === 'active' ? 'success' : 'error'}>
+                      {user.status === 'active' ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -136,10 +142,10 @@ export function Users() {
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant={user.isActive ? "outline" : "primary"}
+                        variant={user.status === 'active' ? "outline" : "primary"}
                         size="sm"
                       >
-                        {user.isActive ? (
+                        {user.status === 'active' ? (
                           <UserX className="h-4 w-4" />
                         ) : (
                           <UserCheck className="h-4 w-4" />
@@ -161,7 +167,7 @@ export function Users() {
       </Card>
 
       {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && pagination.pages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-700 dark:text-gray-300">
             Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
@@ -178,8 +184,8 @@ export function Users() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => setPage(page + 1)}
-              disabled={page === pagination.totalPages}
+              onClick={() => setPage(page + 1)}              
+              disabled={page === pagination.pages}
             >
               Next
             </Button>

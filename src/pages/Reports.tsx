@@ -40,16 +40,16 @@ export function Reports() {
   const { data: businessReport, isLoading: isBusinessLoading } = useQuery({
     queryKey: ['business-report', dateRange],
     queryFn: () => dashboardApi.getBusinessReport({
-      startDate: dateRange.startDate,
-      endDate: dateRange.endDate
+      from: dateRange.startDate,
+      to: dateRange.endDate
     }).then(res => res.data.data),
   });
 
   const { data: profitReport, isLoading: isProfitLoading } = useQuery({
     queryKey: ['profit-report', dateRange],
     queryFn: () => dashboardApi.getProfitReport({
-      startDate: dateRange.startDate,
-      endDate: dateRange.endDate
+      from: dateRange.startDate,
+      to: dateRange.endDate
     }).then(res => res.data.data),
   });
 
@@ -137,7 +137,7 @@ export function Reports() {
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {formatCurrency(businessReport?.totalRevenue || 328000)}
+                    {formatCurrency(businessReport?.revenue?.total || 0)}
                   </p>
                   <div className="flex items-center mt-2">
                     <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
@@ -158,7 +158,7 @@ export function Reports() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">New Users</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">1,247</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{businessReport?.userAcquisition?.newUsers || 0}</p>
                   <div className="flex items-center mt-2">
                     <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
                     <span className="text-sm font-medium text-green-600">+8.2%</span>
@@ -179,7 +179,7 @@ export function Reports() {
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Loans Disbursed</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {formatCurrency(profitReport?.loansDisbursed || 2450000)}
+                    {businessReport?.loanPerformance?.approvedLoans || 0}
                   </p>
                   <div className="flex items-center mt-2">
                     <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
@@ -200,7 +200,7 @@ export function Reports() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Transaction Volume</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">8,432</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">${businessReport?.transactionVolumes?.transfers?.volume || 0}</p>
                   <div className="flex items-center mt-2">
                     <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
                     <span className="text-sm font-medium text-green-600">+22.1%</span>

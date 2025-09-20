@@ -18,10 +18,10 @@ import {
   Sun,
   Moon,
   ChevronDown,
+  FlagTriangleRight,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
-import { Button } from './Button';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -29,13 +29,14 @@ const navigation = [
   { name: 'Loans', href: '/loans', icon: CreditCard },
   { name: 'Savings', href: '/savings', icon: PiggyBank },
   { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
+  { name: 'Flagged Operations', href: '/flagged', icon: FlagTriangleRight },
   { name: 'Reports', href: '/reports', icon: Activity },
   { name: 'Admins', href: '/admins', icon: Shield },
   { name: 'Activity Logs', href: '/activity', icon: Activity },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
-export function Layout() {
+export function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const location = useLocation();
@@ -49,7 +50,7 @@ export function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="bg-gray-50 dark:bg-gray-900">
       {/* Mobile sidebar backdrop */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -57,7 +58,7 @@ export function Layout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 lg:hidden"
+            className="fixed inset-0 z-40"
             onClick={() => setSidebarOpen(false)}
           >
             <div className="absolute inset-0 bg-gray-600 opacity-75" />
@@ -69,7 +70,7 @@ export function Layout() {
       <motion.div
         initial={false}
         animate={{ x: sidebarOpen ? 0 : '-100%' }}
-        className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg lg:translate-x-0 lg:static lg:inset-0"
+        className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg"
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-2">
@@ -114,18 +115,18 @@ export function Layout() {
       </motion.div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="">
         {/* Top navbar */}
         <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between h-16 px-6">
             <div className="flex items-center">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <h1 className="ml-4 text-2xl font-semibold text-gray-900 dark:text-white lg:ml-0">
+              <h1 className="ml-4 text-2xl font-semibold text-gray-900 dark:text-white">
                 {navigation.find(item => location.pathname.startsWith(item.href))?.name || 'Dashboard'}
               </h1>
             </div>
@@ -201,6 +202,7 @@ export function Layout() {
         {/* Page content */}
         <main className="p-6">
           <Outlet />
+          {children}
         </main>
       </div>
     </div>
