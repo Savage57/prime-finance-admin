@@ -1,7 +1,23 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": false,                   // turns off strict mode
+    "noImplicitAny": false,            // allows variables with implicit 'any'
+    "noUnusedLocals": false,           // optional, suppress unused warnings
+    "noUnusedParameters": false,       // optional, suppress unused warnings
+    "noFallthroughCasesInSwitch": false
+  },
+  "include": ["vite.config.ts", "src"]
 }
